@@ -1,6 +1,43 @@
-# Turborepo starter
+# Helyx
 
-This Turborepo starter is maintained by the Turborepo core team.
+## A Solana based Blockchain Indexing Platform on Helius
+
+### Core Functionality
+-> Postgres Database Integration:
+
+* Users should be able to sign up and provide their Postgres database credentials.
+
+* The platform should allow users to specify what they want to index on the Solana blockchain.
+
+-> Customizable Data Indexing:
+
+* Users can choose from predefined indexing categories, such as:
+
+* Currently available bids on an NFT
+
+* Current prices of an NFT
+
+* Currently available tokens to borrow
+
+* The current price of a specific token on various platforms
+
+* The platform should automatically start filling the user’s Postgres database with the selected data.
+
+-> Automated Blockchain Data Retrieval:
+
+* Uses Helius webhooks to facilitate data indexing.
+
+* Removes the need for users to manage their own RPCs or Validators.
+
+* Ensures real-time and accurate data synchronization with Solana blockchain.
+
+-> User-Friendly Interface & Experience:
+
+* A simple and intuitive interface where users can provide their Postgres credentials and select data indexing options.
+
+* Automated backend process to handle data retrieval and indexing without manual intervention.
+
+* Clear status updates and logs for data synchronization progress.
 
 ## Using this example
 
