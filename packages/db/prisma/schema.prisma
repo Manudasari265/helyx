@@ -1,0 +1,202 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  name                String
+  email               String               @unique
+  clerkId             String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+     
+  databaseConfig      DatabaseConfig?
+  indexingPreference  IndexingPreference?
+  indexingJobs        IndexingJob[]
+  webhookConfigs      WebhookConfig[]
+  deployedSchemas     DeployedSchema[]
+  apiKeys             ApiKey[]
+}
+
+model DatabaseConfig {
+  id                  String        @id @default(uuid())
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String        @unique
+  databaseUrl         String?
+  host                String
+  port                Int
+  database            String
+  username            String
+  password            String
+  sslEnabled          Boolean       @default(false)
+  sslCertificate      String?       // If user requires SSL connection
+  connectionStatus    String        @default("pending") // "pending", "connected", "failed"
+  lastConnectionCheck DateTime?     // Last time connection was verified
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model IndexingPreference {
+  id                  String        @id @default(uuid())
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String        @unique
+  maxSyncFrequency    String        @default("realtime") // "realtime", "hourly", "daily"
+  dataRetentionDays   Int           @default(30) // Days to keep data before pruning
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  selectedCategories  IndexingCategorySelection[]
+}
+
+model IndexingCategory {
+  id                  String        @id @default(uuid())
+  name                String        @unique
+  description         String
+  dataStructure       Json          // Schema definition (table structure, columns, types)
+  sqlDefinition       String        // DDL SQL to create the tables and indexes
+  webhookFilters      Json          // Helius webhook filters for this category
+  isActive            Boolean       @default(true)
+  version             String        @default("1.0.0") // Semantic versioning
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  selections          IndexingCategorySelection[]
+  jobs                IndexingJob[]
+  deployedSchemas     DeployedSchema[]
+  schemaVersions      SchemaVersion[]
+}
+
+model SchemaVersion {
+  id                  String           @id @default(uuid())
+  indexingCategory    IndexingCategory @relation(fields: [categoryId], references: [id])
+  categoryId          String
+  version             String           // Semantic version number
+  sqlDefinition       String           // SQL definition for this version
+  migrationScript     String?          // SQL to migrate from previous version
+  releaseNotes        String?
+  createdAt           DateTime         @default(now())
+  
+  @@unique([categoryId, version])
+}
+
+model IndexingCategorySelection {
+  id                  String              @id @default(uuid())
+  indexingPreference  IndexingPreference  @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  preferenceId        String
+  indexingCategory    IndexingCategory    @relation(fields: [categoryId], references: [id])
+  categoryId          String
+  parameters          Json?               // Custom parameters for this category (e.g., NFT address, token address)
+  isActive            Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  @@unique([preferenceId, categoryId])
+}
+
+model DeployedSchema {
+  id                  String           @id @default(uuid())
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  indexingCategory    IndexingCategory @relation(fields: [categoryId], references: [id])
+  categoryId          String
+  targetDatabase      String           // Name of user's database
+  schemaVersion       String           // Track which version is deployed
+  tableName           String           // Actual table name in user's database
+  status              String           // "deployed", "failed", "pending", "needs_migration"
+  lastDeployed        DateTime?        // When schema was last deployed or updated
+  migrationHistory    Json?            // History of migrations performed
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  @@unique([userId, categoryId, targetDatabase])
+}
+
+model IndexingJob {
+  id                  String            @id @default(uuid())
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  category            IndexingCategory  @relation(fields: [categoryId], references: [id])
+  categoryId          String
+  status              String            @default("pending") // "pending", "active", "paused", "completed", "failed"
+  parameters          Json?             // Custom parameters for this job
+  targetTable         String            // Target table in user's database
+  syncStrategy        String            @default("incremental") // "full", "incremental"
+  syncFrequency       String            @default("realtime") // "realtime", "hourly", "daily", "custom"
+  customFrequency     String?           // Cron expression for custom frequency
+  lastSyncedAt        DateTime?
+  nextScheduledSync   DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  webhookConfig       WebhookConfig?    @relation(fields: [webhookConfigId], references: [id])
+  webhookConfigId     String?
+  
+  syncLogs            SyncLog[]
+  dataStatistics      DataStatistics?
+}
+
+model DataStatistics {
+  id                  String        @id @default(uuid())
+  indexingJob         IndexingJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId               String        @unique
+  totalRecords        Int           @default(0)
+  lastDayRecords      Int           @default(0)
+  lastHourRecords     Int           @default(0)
+  averageLatency      Int?          // Average milliseconds from blockchain to database
+  storageUsed         Int?          // Estimated bytes used
+  lastUpdated         DateTime      @default(now())
+}
+
+model WebhookConfig {
+  id                  String        @id @default(uuid())
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  heliusWebhookId     String?       // ID returned from Helius API
+  endpoint            String?       // Webhook endpoint URL
+  filters             Json?         // Webhook filters
+  status              String        @default("pending") // "pending", "active", "inactive", "failed"
+  lastReceivedAt      DateTime?     // Last time data was received on this webhook
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  indexingJobs        IndexingJob[]
+}
+
+model SyncLog {
+  id                  String        @id @default(uuid())
+  indexingJob         IndexingJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId               String
+  status              String        // "success", "error", "warning"
+  message             String
+  recordsProcessed    Int?
+  details             Json?
+  startTime           DateTime
+  endTime             DateTime?
+  createdAt           DateTime      @default(now())
+}
+
+model ApiKey {
+  id                  String        @id @default(uuid())
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  name                String
+  key                 String        @unique
+  lastUsed            DateTime?
+  isActive            Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  @@index([key])
+}
+

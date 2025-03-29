@@ -1,0 +1,15 @@
+{
+  "name": "db",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@prisma/client": "^6.5.0",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "prisma": "^6.5.0"
+  }
+}
