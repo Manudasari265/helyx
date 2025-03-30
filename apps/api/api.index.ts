@@ -8,11 +8,15 @@ const PORT = process.env.PORT || 3001;
 
 //^ User management
 app.post("/api/auth/login", (req: Request, res: Response) => {
-
+    res.json({
+        message: "Login route"
+    })
 });
 
 app.get("/api/auth/profile", (req: Request, res: Response) => {
-
+    res.json({
+        message: "Profile route"
+    })
 });
 
 //^ User database configs

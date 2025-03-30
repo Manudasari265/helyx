@@ -1,7 +1,11 @@
 {
   "name": "api",
-  "module": "index.ts",
+  "module": "api.index.ts",
   "type": "module",
+  "scripts": {
+    "dev": "bun index.ts",
+    "hot": "bun --hot index.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -11,6 +15,7 @@
   "dependencies": {
     "@types/express": "^5.0.1",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "helius-sdk": "^1.4.2"
   }
 }
